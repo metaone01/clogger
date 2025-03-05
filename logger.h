@@ -88,6 +88,11 @@ public:
 #endif
 namespace logger
 {
+#ifdef DEBUG
+#define debug Logger_Base("DEBUG", __FUNCTION__, __FILE__, __LINE__)
+#else
+#define debug NULL
+#endif
 #define info Logger_Base("INFO", __FUNCTION__, __FILE__, __LINE__)
 #define warning Logger_Base("WARNING", __FUNCTION__, __FILE__, __LINE__)
 #define error Logger_Base("ERROR", __FUNCTION__, __FILE__, __LINE__)

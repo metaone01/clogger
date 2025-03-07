@@ -42,21 +42,8 @@ namespace logger_base
     static std::string log_filename;
     static std::ofstream log_file;
     static int today;
-    static bool no_print;
-    static bool save;
-
-    static void init(bool no_print = false, bool save = true)
-    {
-        time_t raw_time;
-        tm time_info;
-        (void)time(&raw_time);
-        (void)localtime_s(&time_info, &raw_time);
-        date = std::to_string(time_info.tm_year + 1900) + "-" + std::to_string(time_info.tm_mon + 1) + "-" +
-               std::to_string(time_info.tm_mday);
-        log_filename = "./log/" + date + ".log";
-        today = time_info.tm_mday;
-        _mkdir("./log");
-    }
+    static bool no_print = false;
+    static bool save = true;
 
     template <typename T>
     static void log(const std::string &log_name,
@@ -93,6 +80,20 @@ namespace logger_base
 }
 namespace logger
 {
+
+    static void init(bool no_print = false, bool save = true)
+    {
+        time_t raw_time;
+        tm time_info;
+        (void)time(&raw_time);
+        (void)localtime_s(&time_info, &raw_time);
+        logger_base::date = std::to_string(time_info.tm_year + 1900) + "-" +
+                            std::to_string(time_info.tm_mon + 1) + "-" +
+                            std::to_string(time_info.tm_mday);
+        logger_base::log_filename = "./log/" + logger_base::date + ".log";
+        logger_base::today = time_info.tm_mday;
+        _mkdir("./log");
+    }
 #ifdef DEBUG
 #define debug(_message) logger_base::log<decltype(_message)>("DEBUG", __FUNCTION__, __FILE__, __LINE__, _message)
 #else

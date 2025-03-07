@@ -13,7 +13,7 @@
 #include <cxxabi.h>
 #endif
 
-namespace logger
+namespace logger_base
 {
     template <class T>
     std::string type_name()
@@ -42,8 +42,10 @@ namespace logger
     static std::string log_filename;
     static std::ofstream log_file;
     static int today;
+    static bool no_print;
+    static bool save;
 
-    static void init()
+    static void init(bool no_print = false, bool save = true)
     {
         time_t raw_time;
         tm time_info;
@@ -61,18 +63,18 @@ namespace logger
                     const std::string &CALLER,
                     const std::string &FILE,
                     const unsigned int LINE,
-                    T _message,
-                    bool no_print = false,
-                    bool save = true)
+                    T _message)
     {
         time_t raw_time;
         tm time_info;
         (void)time(&raw_time);
         (void)localtime_s(&time_info, &raw_time);
         if (time_info.tm_mday != today)
-            date = std::to_string(time_info.tm_year + 1900) + "-" + std::to_string(time_info.tm_mon + 1) + "-" +
+            date = std::to_string(time_info.tm_year + 1900) + "-" +
+                   std::to_string(time_info.tm_mon + 1) + "-" +
                    std::to_string(time_info.tm_mday);
-        std::string _time = std::to_string(time_info.tm_hour) + ":" + std::to_string(time_info.tm_min) + ":" +
+        std::string _time = std::to_string(time_info.tm_hour) + ":" +
+                            std::to_string(time_info.tm_min) + ":" +
                             std::to_string(time_info.tm_sec);
         if (!no_print)
         {
@@ -87,14 +89,17 @@ namespace logger
     }
 
     template <typename T>
-    static void ignore(T _message, bool no_print = false, bool save = true) {}
+    static void ignore(T _message) {}
+}
+namespace logger
+{
 #ifdef DEBUG
-#define debug logger::log<decltype(_message)>("DEBUG", __FUNCTION__, __FILE__, __LINE__)
+#define debug(_message) logger_base::log<decltype(_message)>("DEBUG", __FUNCTION__, __FILE__, __LINE__, _message)
 #else
-#define debug(_message, no_print, save) logger::ignore<decltype(_message)>(_message, no_print, save)
+#define debug(_message) logger_base::ignore<decltype(_message)>(_message)
 #endif
-#define info(_message, no_print, save) logger::log<decltype(_message)>("INFO", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
-#define warning(_message, no_print, save) logger::log<decltype(_message)>("WARNING", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
-#define error(_message, no_print, save) logger::log<decltype(_message)>("ERROR", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
-#define fatal(_message, no_print, save) logger::log<decltype(_message)>("FATAL", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
+#define info(_message) logger_base::log<decltype(_message)>("INFO", __FUNCTION__, __FILE__, __LINE__, _message)
+#define warning(_message) logger_base::log<decltype(_message)>("WARNING", __FUNCTION__, __FILE__, __LINE__, _message)
+#define error(_message) logger_base::log<decltype(_message)>("ERROR", __FUNCTION__, __FILE__, __LINE__, _message)
+#define fatal(_message) logger_base::log<decltype(_message)>("FATAL", __FUNCTION__, __FILE__, __LINE__, _message)
 }

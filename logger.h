@@ -1,100 +1,100 @@
-#ifndef Logger_Base
+#pragma once
+#include <cstdlib>
+#include <ctime>
+#include <direct.h>
 #include <fstream>
-#include <io.h>
 #include <iostream>
 #include <memory>
-#include <stdlib.h>
 #include <string>
-#include <time.h>
+// #include <cstddef>
 // #include <type_traits>
 #include <typeinfo>
 #ifndef _MSC_VER
 #include <cxxabi.h>
 #endif
 
-using namespace std;
-
-template <class T>
-string type_name()
+namespace logger
 {
-    typedef typename remove_reference<T>::type TR;
-    unique_ptr<char, void (*)(void *)> own(
+    template <class T>
+    std::string type_name()
+    {
+        typedef std::remove_reference_t<T> TR;
+        const std::unique_ptr<char, void (*)(void *)> own(
 #ifndef _MSC_VER
-        abi::__cxa_demangle(typeid(TR).name(), nullptr, nullptr, nullptr),
+            abi::__cxa_demangle(typeid(TR).name(), nullptr, nullptr, nullptr),
 #else
-        nullptr,
+            nullptr,
 #endif
-        free);
-    string r = own != nullptr ? own.get() : typeid(TR).name();
-    if (is_const<TR>::value)
-        r += " const";
-    if (is_volatile<TR>::value)
-        r += " volatile";
-    if (is_lvalue_reference<T>::value)
-        r += "&";
-    else if (is_rvalue_reference<T>::value)
-        r += "&&";
-    return r;
-}
-class Logger_Base
-{
-private:
-    time_t raw_time;
-    struct tm *time_info;
-    std::string log_name;
-    std::string __CALLER;
-    std::string __FILE;
-    unsigned int __COLOR;
-    unsigned int __BG_COLOR;
-    char log_filename[100];
-    char __TIME[40];
-    char __DATE[40];
-    unsigned int __LINE;
-    std::ofstream log_file;
-
-public:
-    Logger_Base(const std::string &log_name,
-                const std::string &__CALLER,
-                const std::string &__FILE,
-                unsigned int __LINE) : log_name(log_name),
-                                       __CALLER(__CALLER),
-                                       __FILE(__FILE),
-                                       __LINE(__LINE)
-    {
-        if (_access("./logs", 0) == -1)
-            system("mkdir ./logs");
+            free);
+        std::string r = own != nullptr ? own.get() : typeid(TR).name();
+        if (std::is_const_v<TR>)
+            r += " const";
+        if (std::is_volatile_v<TR>)
+            r += " volatile";
+        if (std::is_lvalue_reference_v<T>)
+            r += "&";
+        else if (std::is_rvalue_reference_v<T>)
+            r += "&&";
+        return r;
     }
-    ~Logger_Base() {};
-    template <typename __TYPE>
-    void operator()(__TYPE _message, bool no_print = false, bool save = true)
+
+    static std::string date;
+    static std::string log_filename;
+    static std::ofstream log_file;
+    static int today;
+
+    static void init()
     {
-        time(&raw_time);
-        time_info = localtime(&raw_time);
-        strftime(__DATE, 40, "%Y-%m-%d", time_info);
-        strftime(__TIME, 40, "%H:%M:%S", time_info);
+        time_t raw_time;
+        tm time_info;
+        (void)time(&raw_time);
+        (void)localtime_s(&time_info, &raw_time);
+        date = std::to_string(time_info.tm_year + 1900) + "-" + std::to_string(time_info.tm_mon + 1) + "-" +
+               std::to_string(time_info.tm_mday);
+        log_filename = "./log/" + date + ".log";
+        today = time_info.tm_mday;
+        _mkdir("./log");
+    }
+
+    template <typename T>
+    static void log(const std::string &log_name,
+                    const std::string &CALLER,
+                    const std::string &FILE,
+                    const unsigned int LINE,
+                    T _message,
+                    bool no_print = false,
+                    bool save = true)
+    {
+        time_t raw_time;
+        tm time_info;
+        (void)time(&raw_time);
+        (void)localtime_s(&time_info, &raw_time);
+        if (time_info.tm_mday != today)
+            date = std::to_string(time_info.tm_year + 1900) + "-" + std::to_string(time_info.tm_mon + 1) + "-" +
+                   std::to_string(time_info.tm_mday);
+        std::string _time = std::to_string(time_info.tm_hour) + ":" + std::to_string(time_info.tm_min) + ":" +
+                            std::to_string(time_info.tm_sec);
         if (!no_print)
         {
-            std::cout << __TIME << " [" << log_name << "] <" << __CALLER << "> in " << __FILE << ", line " << __LINE << ": type:" << type_name<decltype(_message)>() << ", value:" << _message << std::endl;
+            std::cout << time << " [" << log_name << "] <" << CALLER << "> in " << FILE << ", line " << LINE << ": type:" << type_name<decltype(_message)>() << ", value:" << _message << std::endl;
         }
         if (save)
         {
-            sprintf(log_filename, "%s%s%s", "./logs/", __DATE, ".log");
             log_file.open(log_filename, std::ios_base::app);
-            log_file << __TIME << " [" << log_name << "] <" << __CALLER << "> in " << __FILE << ", line " << __LINE << ": type:" << type_name<decltype(_message)>() << ", value:" << _message << std::endl;
+            log_file << _time << " [" << log_name << "] <" << CALLER << "> in " << FILE << ", line " << LINE << ": type:" << type_name<decltype(_message)>() << ", value:" << _message << std::endl;
             log_file.close();
         }
     }
-};
-#endif
-namespace logger
-{
+
+    template <typename T>
+    static void ignore(T _message, bool no_print = false, bool save = true) {}
 #ifdef DEBUG
-#define debug Logger_Base("DEBUG", __FUNCTION__, __FILE__, __LINE__)
+#define debug logger::log<decltype(_message)>("DEBUG", __FUNCTION__, __FILE__, __LINE__)
 #else
-#define debug NULL
+#define debug(_message, no_print, save) logger::ignore<decltype(_message)>(_message, no_print, save)
 #endif
-#define info Logger_Base("INFO", __FUNCTION__, __FILE__, __LINE__)
-#define warning Logger_Base("WARNING", __FUNCTION__, __FILE__, __LINE__)
-#define error Logger_Base("ERROR", __FUNCTION__, __FILE__, __LINE__)
-#define fatal Logger_Base("FATAL", __FUNCTION__, __FILE__, __LINE__)
-};
+#define info(_message, no_print, save) logger::log<decltype(_message)>("INFO", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
+#define warning(_message, no_print, save) logger::log<decltype(_message)>("WARNING", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
+#define error(_message, no_print, save) logger::log<decltype(_message)>("ERROR", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
+#define fatal(_message, no_print, save) logger::log<decltype(_message)>("FATAL", __FUNCTION__, __FILE__, __LINE__, _message, no_print, save)
+}

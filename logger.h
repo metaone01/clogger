@@ -44,8 +44,6 @@ namespace logger_base
             log_file.close();
         }
     }
-
-    static void ignore(std::string _message) {}
 }
 namespace logger
 {
@@ -66,7 +64,7 @@ namespace logger
 #ifdef DEBUG
 #define debug(_message) logger_base::log("DEBUG", __FUNCTION__, __FILE__, __LINE__, _message)
 #else
-#define debug(_message) logger_base::ignore(_message)
+#define debug(_message)
 #endif
 #define info(_message) logger_base::log("INFO", __FUNCTION__, __FILE__, __LINE__, _message)
 #define warning(_message) logger_base::log("WARNING", __FUNCTION__, __FILE__, __LINE__, _message)

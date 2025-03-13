@@ -5,7 +5,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-
 namespace logger_base
 {
 
@@ -47,9 +46,11 @@ namespace logger_base
 }
 namespace logger
 {
+    static bool DEBUG = false;
 
-    static void init(bool no_print = false, bool save = true)
+    static void init(bool debug = false, bool no_print = false, bool save = true)
     {
+        logger::DEBUG = debug;
         time_t raw_time;
         tm time_info;
         (void)time(&raw_time);
@@ -61,11 +62,9 @@ namespace logger
         logger_base::today = time_info.tm_mday;
         _mkdir("./log");
     }
-#ifdef DEBUG
-#define debug(_message) logger_base::log("DEBUG", __FUNCTION__, __FILE__, __LINE__, _message)
-#else
-#define debug(_message)
-#endif
+#define debug(_message) \
+    if (logger::DEBUG)  \
+    logger_base::log("DEBUG", __FUNCTION__, __FILE__, __LINE__, _message)
 #define info(_message) logger_base::log("INFO", __FUNCTION__, __FILE__, __LINE__, _message)
 #define warning(_message) logger_base::log("WARNING", __FUNCTION__, __FILE__, __LINE__, _message)
 #define error(_message) logger_base::log("ERROR", __FUNCTION__, __FILE__, __LINE__, _message)
